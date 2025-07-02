@@ -18,5 +18,29 @@
     "unilist"
   ],
   "author": "SamadK01",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "react-native-builder-bob": "^0.40.8"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "scripts": {
+    "prepare": "bob build"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "module",
+        { "esm": true }
+      ],
+      [
+        "typescript",
+        { "project": "tsconfig.build.json" }
+      ]
+    ]
+  }
 }
