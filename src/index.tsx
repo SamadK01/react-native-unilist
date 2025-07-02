@@ -2,7 +2,6 @@ export { UniList, type UniListProps, type UniListRef } from './UniList';
 
 // Export Card Components
 export { 
-  Card, 
   ElevatedCard, 
   OutlinedCard, 
   FilledCard, 

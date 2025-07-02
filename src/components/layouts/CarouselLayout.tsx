@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, ScrollView, Dimensions } from 'react-native';
-import type { ViewStyle, StyleProp } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 
 export interface CarouselLayoutProps {
   children: React.ReactNode;
@@ -9,103 +8,113 @@ export interface CarouselLayoutProps {
   showDots?: boolean;
   dotColor?: string;
   activeDotColor?: string;
-  style?: StyleProp<ViewStyle>;
   itemWidth?: number;
   spacing?: number;
+  style?: any;
 }
 
 export const CarouselLayout: React.FC<CarouselLayoutProps> = ({
   children,
   autoplay = false,
   interval = 3000,
-  showDots = true,
+  showDots = false,
   dotColor = '#CCCCCC',
   activeDotColor = '#007AFF',
-  style,
-  itemWidth,
+  itemWidth = 300,
   spacing = 16,
+  style,
 }) => {
-  const { width } = Dimensions.get('window');
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [contentWidth, setContentWidth] = useState(0);
+  const autoplayRef = useRef<NodeJS.Timeout | null>(null);
 
   const childrenArray = React.Children.toArray(children);
-  const actualItemWidth = itemWidth || width * 0.8;
 
   useEffect(() => {
     if (autoplay && childrenArray.length > 1) {
-      const timer = setInterval(() => {
-        const nextIndex = (currentIndex + 1) % childrenArray.length;
-        scrollToIndex(nextIndex);
+      autoplayRef.current = setInterval(() => {
+        setCurrentIndex((prevIndex) => 
+          prevIndex === childrenArray.length - 1 ? 0 : prevIndex + 1
+        );
       }, interval);
-
-      return () => clearInterval(timer);
     }
-  }, [currentIndex, autoplay, interval, childrenArray.length]);
 
-  const scrollToIndex = (index: number) => {
-    const x = index * (actualItemWidth + spacing);
-    scrollViewRef.current?.scrollTo({ x, animated: true });
-    setCurrentIndex(index);
-  };
+    return () => {
+      if (autoplayRef.current) {
+        clearInterval(autoplayRef.current);
+      }
+    };
+  }, [autoplay, interval, childrenArray.length]);
 
   const handleScroll = (event: any) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffset / (actualItemWidth + spacing));
+    const index = Math.round(contentOffset / (itemWidth + spacing));
     setCurrentIndex(index);
   };
 
-  const renderDots = () => {
-    if (!showDots) return null;
-
-    return (
-      <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
-        {childrenArray.map((_, index) => (
-          <View
-            key={index}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: index === currentIndex ? activeDotColor : dotColor,
-              marginHorizontal: 4,
-            }}
-          />
-        ))}
-      </View>
-    );
-  };
-
   return (
-    <View style={style}>
+    <View style={[styles.container, style]}>
       <ScrollView
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        pagingEnabled={false}
-        snapToInterval={actualItemWidth + spacing}
-        snapToAlignment="center"
-        decelerationRate="fast"
+        pagingEnabled
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{
-          paddingHorizontal: spacing / 2,
-        }}
+        contentContainerStyle={styles.scrollContent}
       >
         {childrenArray.map((child, index) => (
           <View
             key={index}
-            style={{
-              width: actualItemWidth,
-              marginHorizontal: spacing / 2,
-            }}
+            style={[
+              styles.item,
+              { width: itemWidth, marginRight: spacing }
+            ]}
           >
             {child}
           </View>
         ))}
       </ScrollView>
-      {renderDots()}
+
+      {showDots && childrenArray.length > 1 && (
+        <View style={styles.dotsContainer}>
+          {childrenArray.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                {
+                  backgroundColor: index === currentIndex ? activeDotColor : dotColor,
+                },
+              ]}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
-}; 
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+  },
+  item: {
+    flex: 1,
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+}); 

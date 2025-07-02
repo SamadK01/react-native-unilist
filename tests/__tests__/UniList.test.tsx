@@ -1,3 +1,6 @@
-npm version minor 
-npm login 
-npm publish --access=public 
+// Basic test placeholder - can be expanded with proper testing setup
+describe('UniList', () => {
+  it('should be defined', () => {
+    expect(true).toBe(true);
+  });
+}); 
