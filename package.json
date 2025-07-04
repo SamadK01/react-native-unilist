@@ -1,11 +1,13 @@
 {
   "name": "react-native-unilist",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Beautiful FlatList and ScrollView wrapper for React Native",
   "main": "lib/module/index.js",
   "module": "lib/module/index.js",
   "types": "lib/typescript/src/index.d.ts",
-  "files": ["lib"],
+  "files": [
+    "lib"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/SamadK01/react-native-unilist.git"
@@ -20,14 +22,18 @@
   "author": "SamadK01",
   "license": "MIT",
   "devDependencies": {
-    "react-native-builder-bob": "^0.40.8"
+    "react-native-builder-bob": "^0.40.8",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
     "react": "*",
     "react-native": "*"
   },
   "scripts": {
-    "prepare": "bob build"
+    "prepare": "bob build",
+    "lint": "echo 'No linter configured'",
+    "typecheck": "tsc --noEmit",
+    "test": "echo 'No tests configured'"
   },
   "react-native-builder-bob": {
     "source": "src",
@@ -35,11 +41,15 @@
     "targets": [
       [
         "module",
-        { "esm": true }
+        {
+          "esm": true
+        }
       ],
       [
         "typescript",
-        { "project": "tsconfig.build.json" }
+        {
+          "project": "tsconfig.build.json"
+        }
       ]
     ]
   }
