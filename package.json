@@ -1,7 +1,7 @@
 {
   "name": "react-native-unilist",
-  "version": "0.1.2",
-  "description": "Beautiful FlatList and ScrollView wrapper for React Native",
+  "version": "0.2.0",
+  "description": "Beautiful FlatList and ScrollView wrapper for React Native. Updated to React 19, removed react-native-web-hooks, cleaned up dependencies.",
   "main": "lib/module/index.js",
   "module": "lib/module/index.js",
   "types": "lib/typescript/src/index.d.ts",
@@ -26,7 +26,7 @@
     "typescript": "^5.8.3"
   },
   "peerDependencies": {
-    "react": "*",
+    "react": "19.0.0",
     "react-native": "*"
   },
   "scripts": {
