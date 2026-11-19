@@ -1,120 +1,89 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
+/** Options for {@link useSearch}. @example `useSearch<Product>({ data: products, searchFields: ['name'] })` */
 export interface SearchOptions<T> {
-  data: T[];
-  searchFields: (keyof T)[];
+  /** Source items; results recompute when this identity changes. */
+  data: readonly T[];
+  /** Typed item properties included in text matching. */
+  searchFields: readonly (keyof T)[];
+  /** Delay before applying a new query; defaults to 300 ms. */
   debounceMs?: number;
+  /** Preserves letter case while matching. */
   caseSensitive?: boolean;
+  /** Retained for v1 compatibility. Use highlightText while rendering instead of mutating T. */
   highlightResults?: boolean;
 }
 
+/** Current typed search state returned by {@link useSearch}. */
 export interface SearchState<T> {
+  /** The immediately entered query. */
   query: string;
+  /** Filtered items after debounce completes. */
   results: T[];
+  /** True while `query` is waiting for its debounce interval. */
   loading: boolean;
+  /** Compatibility alias for unmodified `results`. */
   highlightedResults: T[];
 }
 
+/** Imperative operations returned by {@link useSearch}. */
 export interface SearchActions {
+  /** Sets a debounced query. */
   setQuery: (query: string) => void;
+  /** Clears query and synchronously restores source items. */
   clearSearch: () => void;
+  /** Alias for `setQuery`. */
   search: (query: string) => void;
+  /** Returns markdown-marked text when `highlightResults` is enabled. */
+  highlightText: (text: string) => string;
 }
 
-export function useSearch<T>({
-  data,
-  searchFields,
-  debounceMs = 300,
-  caseSensitive = false,
-  highlightResults = false,
-}: SearchOptions<T>): SearchState<T> & SearchActions {
-  const [state, setState] = useState<SearchState<T>>({
-    query: '',
-    results: data,
-    loading: false,
-    highlightedResults: data,
-  });
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  const searchData = useCallback((query: string, searchData: T[]): T[] => {
-    if (!query.trim()) return searchData;
+/**
+ * Type-safe debounced local search that never mutates source items.
+ *
+ * @example
+ * ```tsx
+ * const { results, setQuery } = useSearch<User>({ data: users, searchFields: ['name', 'email'] });
+ * ```
+ */
+export function useSearch<T>({ data, searchFields, debounceMs = 300, caseSensitive = false, highlightResults = false }: SearchOptions<T>): SearchState<T> & SearchActions {
+  const [query, setQueryState] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
-    const searchTerm = caseSensitive ? query : query.toLowerCase();
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), Math.max(0, debounceMs));
+    return () => clearTimeout(timer);
+  }, [debounceMs, query]);
 
-    return searchData.filter(item => {
-      return searchFields.some(field => {
-        const fieldValue = item[field];
-        if (fieldValue == null) return false;
+  const results = useMemo(() => {
+    const term = debouncedQuery.trim();
+    if (!term) return [...data];
+    const comparisonTerm = caseSensitive ? term : term.toLocaleLowerCase();
+    return data.filter(item => searchFields.some(field => {
+      const value = item[field];
+      if (value == null) return false;
+      const text = String(value);
+      return (caseSensitive ? text : text.toLocaleLowerCase()).includes(comparisonTerm);
+    }));
+  }, [caseSensitive, data, debouncedQuery, searchFields]);
 
-        const stringValue = String(fieldValue);
-        const compareValue = caseSensitive ? stringValue : stringValue.toLowerCase();
-
-        return compareValue.includes(searchTerm);
-      });
-    });
-  }, [searchFields, caseSensitive]);
-
-  const highlightText = useCallback((text: string, query: string): string => {
-    if (!highlightResults || !query.trim()) return text;
-
-    const regex = new RegExp(`(${query})`, caseSensitive ? 'g' : 'gi');
-    return text.replace(regex, '**$1**'); // Simple highlighting with markdown-style
-  }, [highlightResults, caseSensitive]);
-
-  const setQuery = useCallback((query: string) => {
-    setState(prev => ({ ...prev, query, loading: true }));
-
-    // Debounced search
-    const timeoutId = setTimeout(() => {
-      const results = searchData(query, data);
-      const highlightedResults = highlightResults 
-        ? results.map(item => {
-            const highlightedItem = { ...item };
-            searchFields.forEach(field => {
-              const value = item[field];
-              if (value != null) {
-                highlightedItem[field] = highlightText(String(value), query) as any;
-              }
-            });
-            return highlightedItem;
-          })
-        : results;
-
-      setState(prev => ({
-        ...prev,
-        results,
-        highlightedResults,
-        loading: false,
-      }));
-    }, debounceMs);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchData, data, highlightResults, searchFields, highlightText, debounceMs]);
-
-  const clearSearch = useCallback(() => {
-    setState({
-      query: '',
-      results: data,
-      loading: false,
-      highlightedResults: data,
-    });
-  }, [data]);
-
-  const search = useCallback((query: string) => {
-    setQuery(query);
-  }, [setQuery]);
-
-  // Memoized search results
-  const memoizedResults = useMemo(() => {
-    return state.query ? state.results : data;
-  }, [state.query, state.results, data]);
+  const setQuery = useCallback((nextQuery: string) => setQueryState(nextQuery), []);
+  const clearSearch = useCallback(() => { setQueryState(''); setDebouncedQuery(''); }, []);
+  const highlightText = useCallback((text: string) => {
+    if (!highlightResults || !debouncedQuery.trim()) return text;
+    return text.replace(new RegExp(`(${escapeRegExp(debouncedQuery)})`, caseSensitive ? 'g' : 'gi'), '**$1**');
+  }, [caseSensitive, debouncedQuery, highlightResults]);
 
   return {
-    query: state.query,
-    results: memoizedResults,
-    loading: state.loading,
-    highlightedResults: state.highlightedResults,
+    query,
+    results,
+    loading: query !== debouncedQuery,
+    highlightedResults: results,
     setQuery,
     clearSearch,
-    search,
+    search: setQuery,
+    highlightText,
   };
-} 
+}

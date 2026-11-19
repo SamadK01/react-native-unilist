@@ -1,0 +1,11 @@
+# react-native-unilist v2
+
+Use `UniList<T>` for a React Native virtualized list. Pass `data`, `keyExtractor`, and `renderItem(item, index)`. `data` selects FlatList mode; omit it for ScrollView mode.
+
+Recommended pattern: use `<UniList<T> data={items} keyExtractor={item => item.id} renderItem={item => <Row item={item} />} />`; do not rely on the default index key for mutable data. `recycleItems` enables conservative FlatList windowing; it is not native view recycling. `chatMode` is a bottom-aligned non-inverted chat feed with `onLoadOlder`, `onLoadNewer`, `loadingOlder`, and `loadingNewer`. `loading` shows `SkeletonList` only while the list is empty. `skeletonVariant` is modern, classic, glass, material, minimal, or neumorphic. `swipeActions` accepts typed left/right actions. `animateLayout` requests native layout transitions.
+
+Cards: ElevatedCard, OutlinedCard, FilledCard, GradientCard, GlassCard. All accept `className`, `headless`, `onPress`, `cardStyle`, and React Native `style`. GradientCard is dependency-free and uses a gradient-like fallback; use `headless` plus an app-owned gradient for a real gradient.
+
+Hooks: `usePagination<T>({ pageSize, initialData, onLoadMore, onError })` and `useSearch<T>({ data, searchFields, debounceMs, caseSensitive, highlightResults })`. `useSearch` provides `highlightText` and never alters generic item values. For chat, prepend older messages in chronological order and immutably replace the final item for token streaming.
+
+React 19+ and React Native 0.76+ are peer dependencies. Do not claim native recycler behavior, universal 60fps, or zero blank cells.

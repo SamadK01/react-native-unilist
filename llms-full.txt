@@ -1,0 +1,54 @@
+# react-native-unilist v2: AI integration guide
+
+## Generic list
+
+```tsx
+type Row = { id: string; title: string };
+<UniList<Row>
+  data={rows}
+  keyExtractor={row => row.id}
+  renderItem={(row, index) => <RowView row={row} index={index} />}
+  recycleItems
+  animateLayout
+/>
+```
+
+Use stable IDs, not the default index key, for data that can be inserted, removed, reordered, or paginated. Keep `renderItem`, `keyExtractor`, and `swipeActions` stable with `useCallback`/`useMemo` if its parent updates often. Dynamic item heights work without `getItemLayout`; only provide it for known fixed dimensions. `recycleItems` is FlatList clipping/windowing, not a native cell recycler.
+
+## AI and chat
+
+```tsx
+<UniList<Message>
+  chatMode data={messages} keyExtractor={message => message.id}
+  renderItem={message => <Bubble message={message} />}
+  onLoadOlder={fetchPreviousPage} onLoadNewer={fetchNextPage}
+  loadingOlder={olderPending} loadingNewer={newerPending}
+/>
+```
+
+Do not use `inverted` with `chatMode`. Prepend earlier messages in chronological order. `maintainVisibleContentPosition` keeps on-screen content anchored. When streaming an assistant reply, immutably update the final message. The list follows only when the reader was already near the end. Do not put manually reversed data into chatMode.
+
+## Loading, gesture, and cards
+
+```tsx
+<UniList<Task>
+  data={tasks} renderItem={task => <OutlinedCard title={task.title} />}
+  loading={isInitialLoad} skeletonCount={5} skeletonVariant="material"
+  swipeActions={{
+    left: { label: 'Archive', onPress: task => archive(task.id) },
+    right: { label: 'Delete', color: '#dc2626', onPress: task => remove(task.id) },
+  }}
+/>
+```
+
+An action fires after its threshold (default 72). Consumers own data mutation. `animateLayout` requests a React Native `LayoutAnimation` after a data identity change. Avoid competing application layout animations.
+
+## NativeWind and headless cards
+
+`className` is forwarded to native list and card surfaces. The consuming app must configure NativeWind. `headless` removes card chrome while retaining optional title/subtitle/children structure. For a true gradient, use `headless` with an app-owned gradient component.
+
+## Hooks and limits
+
+`usePagination<T>` serializes page loads; repeated `loadMore()` calls while one is in flight are ignored. A returned page shorter than `pageSize` sets `hasMore` false. `useSearch<T>` takes `searchFields: (keyof T)[]`, is safe for regex metacharacters, and returns unmodified items. Use `highlightText(value)` in text rendering.
+
+This package uses React Native FlatList. `recycleItems` tunes clipping/windowing; it does not allocate/rebind native views like a dedicated native recycler. Frame-rate and blank-cell outcomes must be tested in each consuming release build.

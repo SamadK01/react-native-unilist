@@ -26,5 +26,6 @@
     "target": "ESNext",
     "verbatimModuleSyntax": true
   },
+  "include": ["src"],
   "exclude": ["tests", "lib", "node_modules"]
 }
